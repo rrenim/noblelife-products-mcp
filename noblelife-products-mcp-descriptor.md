@@ -379,33 +379,42 @@
       "description": "Рассчитать актуальные цены для набора продуктов/вариантов/аддонов с учётом даты, слота и канала продаж. Данные не изменяются — только вычисление.",
       "inputSchema": {
         "type": "object",
-        "required": ["items"],
+        "required": ["products"],
         "properties": {
-          "items": {
+          "products": {
             "type": "array",
             "items": {
               "type": "object",
+              "required": ["productId", "date"],
               "properties": {
+                "keyId": { "type": "string" },
                 "productId": { "type": "string", "format": "uuid" },
                 "variantId": { "type": "integer" },
-                "addonId": { "type": "integer" },
                 "date": { "type": "string", "format": "date" },
-                "timeSlotId": { "type": "integer" },
+                "timeSlot": { "type": "string" },
                 "categories": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "categoryType": { "type": "string", "description": "Например: ADULT, CHILD, PRIVATE" },
+                      "type": { "type": "string", "description": "Например: ADULT, CHILD, PRIVATE" },
+                      "quantity": { "type": "integer" }
+                    }
+                  }
+                },
+                "addons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "addonId": { "type": "integer" },
                       "quantity": { "type": "integer" }
                     }
                   }
                 }
               }
             }
-          },
-          "saleChannel": { "type": "string" },
-          "currencyCode": { "type": "string" }
+          }
         }
       },
       "http": {
@@ -420,20 +429,42 @@
       "description": "Получить цены для конкретных продуктов в B2C-витрине. Данные не изменяются — только выборка.",
       "inputSchema": {
         "type": "object",
-        "required": ["items"],
+        "required": ["products"],
         "properties": {
-          "items": {
+          "displayCurrency": { "type": "string", "description": "Код валюты, например AED, USD" },
+          "products": {
             "type": "array",
             "items": {
               "type": "object",
+              "required": ["productId", "date"],
               "properties": {
+                "keyId": { "type": "string" },
                 "productId": { "type": "string", "format": "uuid" },
-                "variantId": { "type": "integer" },
-                "date": { "type": "string", "format": "date" }
+                "date": { "type": "string", "format": "date" },
+                "categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "tier": { "type": "integer" }
+                    }
+                  }
+                },
+                "addons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "tier": { "type": "integer" }
+                    }
+                  }
+                },
+                "isResident": { "type": "boolean" }
               }
             }
-          },
-          "currencyCode": { "type": "string", "description": "Код валюты, например AED, USD" }
+          }
         }
       },
       "http": {

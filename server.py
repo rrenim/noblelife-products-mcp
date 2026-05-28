@@ -7,8 +7,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -60,6 +62,12 @@ SPEC = load_descriptor(SPEC_FILE)
 SERVER_NAME = SPEC.get("server", {}).get("name", "noblelife-product-service")
 BASE_URL = SPEC.get("server", {}).get("baseUrl", "").rstrip("/")
 COMMON_HEADERS = dict(SPEC.get("server", {}).get("commonHeaders", {}))
+DEFAULT_UPSTREAM_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://product-new-prod.noblelife.ae/",
+}
 
 mcp = FastMCP(
     SERVER_NAME,
@@ -102,7 +110,8 @@ def _build_request(tool: dict, args: dict):
     if query:
         url = f"{url}?{query}"
 
-    headers = dict(COMMON_HEADERS)
+    headers = dict(DEFAULT_UPSTREAM_HEADERS)
+    headers.update(COMMON_HEADERS)
     headers.update({k: _resolve_header_value(v, args) for k, v in http_cfg.get("headers", {}).items()})
 
     auth_cfg = SPEC.get("server", {}).get("auth", {})
@@ -164,6 +173,8 @@ def _tool_impl_factory(tool: dict):
     for param_name, param_schema in properties.items():
         safe_name = _safe_param_name(param_name)
         annotation = _python_annotation(param_schema)
+        if safe_name != param_name:
+            annotation = f"Annotated[{annotation}, Field(alias={param_name!r})]"
         if param_name in required:
             signature_lines.append(f"{safe_name}: {annotation}")
             params.append(inspect.Parameter(safe_name, inspect.Parameter.KEYWORD_ONLY, annotation=annotation))
@@ -172,14 +183,16 @@ def _tool_impl_factory(tool: dict):
             signature_lines.append(f"{safe_name}: {annotation} = {default}")
             params.append(inspect.Parameter(safe_name, inspect.Parameter.KEYWORD_ONLY, annotation=annotation, default=param_schema.get("default", None)))
 
-    function_source = "def tool_impl(" + ", ".join(signature_lines) + "):\n"
-    function_source += "    args = {original: locals()[safe] for original, safe in tool_aliases.items() if safe in locals()}\n"
+    function_source = "def tool_impl(**kwargs):\n"
+    function_source += "    args = {name: kwargs[name] for name in tool_arg_names if name in kwargs}\n"
     function_source += "    return _execute_tool(tool, args)\n"
 
     namespace = {
         "_execute_tool": _execute_tool,
         "tool": tool,
-        "tool_aliases": {name: _safe_param_name(name) for name in properties.keys()},
+        "tool_arg_names": list(properties.keys()),
+        "Annotated": Annotated,
+        "Field": Field,
     }
     exec(function_source, namespace)
     tool_impl = namespace["tool_impl"]
