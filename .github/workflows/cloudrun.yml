@@ -31,16 +31,17 @@ jobs:
         run: gcloud auth configure-docker --quiet
 
       - name: Build and push image
+        id: build
         run: |
           IMAGE="gcr.io/$PROJECT_ID/$SERVICE_NAME:${GITHUB_SHA}"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
-          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: $SERVICE_NAME
-          image: ${{ env.IMAGE }}
+          image: ${{ steps.build.outputs.image }}
           region: ${{ env.REGION }}
           flags: --allow-unauthenticated --set-env-vars=HOST=0.0.0.0,PORT=8080

@@ -374,105 +374,6 @@
     // ЦЕНЫ (ВЫЧИСЛИТЕЛЬНЫЕ ЗАПРОСЫ)
     // ─────────────────────────────────────────
 
-    {
-      "name": "resolve_prices",
-      "description": "Рассчитать актуальные цены для набора продуктов/вариантов/аддонов с учётом даты, слота и канала продаж. Данные не изменяются — только вычисление.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["products"],
-        "properties": {
-          "products": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["productId", "date"],
-              "properties": {
-                "keyId": { "type": "string" },
-                "productId": { "type": "string", "format": "uuid" },
-                "variantId": { "type": "integer" },
-                "date": { "type": "string", "format": "date" },
-                "timeSlot": { "type": "string" },
-                "categories": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "type": { "type": "string", "description": "Например: ADULT, CHILD, PRIVATE" },
-                      "quantity": { "type": "integer" }
-                    }
-                  }
-                },
-                "addons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "addonId": { "type": "integer" },
-                      "quantity": { "type": "integer" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "http": {
-        "method": "POST",
-        "path": "/api/v2/prices/resolve",
-        "body": "all"
-      }
-    },
-
-    {
-      "name": "fetch_prices",
-      "description": "Получить цены для конкретных продуктов в B2C-витрине. Данные не изменяются — только выборка.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["products"],
-        "properties": {
-          "displayCurrency": { "type": "string", "description": "Код валюты, например AED, USD" },
-          "products": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["productId", "date"],
-              "properties": {
-                "keyId": { "type": "string" },
-                "productId": { "type": "string", "format": "uuid" },
-                "date": { "type": "string", "format": "date" },
-                "categories": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "type": { "type": "string" },
-                      "tier": { "type": "integer" }
-                    }
-                  }
-                },
-                "addons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": { "type": "integer" },
-                      "tier": { "type": "integer" }
-                    }
-                  }
-                },
-                "isResident": { "type": "boolean" }
-              }
-            }
-          }
-        }
-      },
-      "http": {
-        "method": "POST",
-        "path": "/api/v2/prices/fetch",
-        "body": "all"
-      }
-    }
   ],
 
   // ─────────────────────────────────────────
@@ -496,11 +397,6 @@
       "- get_translations_batch — переводы нескольких сущностей одного типа за один запрос",
       "- entityType: product | variant | inclusion | addon | information",
       "- Поля: product→name,description,rich_text; variant/addon/inclusion→name,description; information→name,description,rich_text"
-    ],
-    "pricing": [
-      "- resolve_prices: рассчитать цену под конкретную дату, слот, категории участников и канал продаж",
-      "- fetch_prices: получить базовые цены для витрины без детальных условий",
-      "- Оба метода используют POST, но данные не изменяют"
     ],
     "referenceData": [
       "Справочники загружаются однократно и кэшируются:",
