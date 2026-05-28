@@ -1,4 +1,6 @@
+import inspect
 import json
+import keyword
 import os
 import re
 import urllib.error
@@ -133,14 +135,57 @@ def _execute_tool(tool: dict, args: dict):
         return {"error": "request_failed", "message": str(exc)}
 
 
+def _safe_param_name(name: str) -> str:
+    if name.isidentifier() and not keyword.iskeyword(name):
+        return name
+    return f"{name}_"
+
+
+def _python_annotation(schema: dict) -> str:
+    schema_type = schema.get("type", "string")
+    mapping = {
+        "integer": "int",
+        "number": "float",
+        "boolean": "bool",
+        "array": "list",
+        "object": "dict",
+    }
+    return mapping.get(schema_type, "str")
+
+
 def _tool_impl_factory(tool: dict):
     name = tool["name"]
+    input_schema = tool.get("inputSchema", {})
+    properties = input_schema.get("properties", {})
+    required = set(input_schema.get("required", []))
 
-    def tool_impl(**kwargs):
-        return _execute_tool(tool, kwargs)
+    params = []
+    signature_lines = []
+    for param_name, param_schema in properties.items():
+        safe_name = _safe_param_name(param_name)
+        annotation = _python_annotation(param_schema)
+        if param_name in required:
+            signature_lines.append(f"{safe_name}: {annotation}")
+            params.append(inspect.Parameter(safe_name, inspect.Parameter.KEYWORD_ONLY, annotation=annotation))
+        else:
+            default = repr(param_schema.get("default", None))
+            signature_lines.append(f"{safe_name}: {annotation} = {default}")
+            params.append(inspect.Parameter(safe_name, inspect.Parameter.KEYWORD_ONLY, annotation=annotation, default=param_schema.get("default", None)))
 
+    function_source = "def tool_impl(" + ", ".join(signature_lines) + "):\n"
+    function_source += "    args = {original: locals()[safe] for original, safe in tool_aliases.items() if safe in locals()}\n"
+    function_source += "    return _execute_tool(tool, args)\n"
+
+    namespace = {
+        "_execute_tool": _execute_tool,
+        "tool": tool,
+        "tool_aliases": {name: _safe_param_name(name) for name in properties.keys()},
+    }
+    exec(function_source, namespace)
+    tool_impl = namespace["tool_impl"]
     tool_impl.__name__ = re.sub(r"[^0-9a-zA-Z_]+", "_", name)
     tool_impl.__doc__ = tool.get("description", "")
+    tool_impl.__signature__ = inspect.Signature(params)
     return tool_impl
 
 
