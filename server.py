@@ -11,6 +11,8 @@ from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -75,6 +77,14 @@ mcp = FastMCP(
     host=os.getenv("HOST", "0.0.0.0"),
     port=int(os.getenv("PORT", "8000")),
 )
+
+APP_VERSION = os.getenv("APP_VERSION", "2026-05-29T00:00:00Z")
+
+
+@mcp.custom_route("/version", methods=["GET"])
+async def version_endpoint(request: Request) -> JSONResponse:
+    """Return the current build/version marker for the deployed service."""
+    return JSONResponse({"version": APP_VERSION, "service": SERVER_NAME})
 
 
 def _read_env_token() -> str | None:
@@ -162,6 +172,17 @@ def _python_annotation(schema: dict) -> str:
     return mapping.get(schema_type, "str")
 
 
+def _clean_tool_parameters(tool_obj) -> None:
+    """Remove null defaults from the runtime MCP schema to avoid agents sending useless null fields."""
+    parameters = getattr(tool_obj, "parameters", None)
+    if not isinstance(parameters, dict):
+        return
+
+    for prop in parameters.get("properties", {}).values():
+        if isinstance(prop, dict) and prop.get("default") is None:
+            prop.pop("default", None)
+
+
 def _tool_impl_factory(tool: dict):
     name = tool["name"]
     input_schema = tool.get("inputSchema", {})
@@ -204,6 +225,9 @@ def _tool_impl_factory(tool: dict):
 
 for tool in SPEC.get("tools", []):
     mcp.tool(name=tool["name"], description=tool.get("description", ""))(_tool_impl_factory(tool))
+
+for tool_obj in mcp._tool_manager._tools.values():
+    _clean_tool_parameters(tool_obj)
 
 
 @mcp.tool()
