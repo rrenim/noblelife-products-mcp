@@ -95,7 +95,7 @@
     // ─────────────────────────────────────────
 
     {
-      "name": "get_addon_groups_for_product",
+      "name": "list_addon_groups_for_product",
       "description": "Получить список групп аддонов, доступных для продукта.",
       "inputSchema": {
         "type": "object",
@@ -155,7 +155,7 @@
     // ─────────────────────────────────────────
 
     {
-      "name": "get_product_information",
+      "name": "list_product_information",
       "description": "Получить информационные блоки продукта (описательные секции с медиа).",
       "inputSchema": {
         "type": "object",
@@ -246,7 +246,7 @@
     // ─────────────────────────────────────────
 
     {
-      "name": "get_translations",
+      "name": "list_translations",
       "description": "Получить переводы одной сущности по типу, ID и локали. entityType: product | variant | inclusion | addon | information.",
       "inputSchema": {
         "type": "object",
@@ -269,7 +269,7 @@
     },
 
     {
-      "name": "get_translations_batch",
+      "name": "list_translations_batch",
       "description": "Batch-загрузка переводов для нескольких сущностей одного типа за один запрос.",
       "inputSchema": {
         "type": "object",
@@ -349,10 +349,6 @@
       "inputSchema": { "type": "object", "properties": {} },
       "http": { "method": "GET", "path": "/api/v2/itinerary-point-types" }
     },
-
-    // ─────────────────────────────────────────
-    // ЦЕНЫ (ВЫЧИСЛИТЕЛЬНЫЕ ЗАПРОСЫ)
-    // ─────────────────────────────────────────
 
   ],
 
