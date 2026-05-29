@@ -56,7 +56,7 @@
 
     {
       "name": "get_product",
-      "description": "Получить полные данные продукта по его UUID.",
+      "description": "Получить полные данные и информацию по продукту по его UUID.",
       "inputSchema": {
         "type": "object",
         "required": ["id"],
@@ -68,44 +68,6 @@
       "http": {
         "method": "GET",
         "path": "/api/v2/products/{id}",
-        "pathParams": ["id"],
-        "headers": { "Content-Language": "{locale}" }
-      }
-    },
-
-    {
-      "name": "get_product_editor",
-      "description": "Загрузить агрегированный editor-payload для продукта: product, variants, addons, timeSlots, media, information, priceLists, availabilityRules, translations, publishReadiness. Основной источник полного состояния продукта.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["id"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid", "description": "UUID продукта" },
-          "locale": { "type": "string", "default": "en", "description": "Язык переводов в ответе" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/products/{id}/editor",
-        "pathParams": ["id"],
-        "headers": { "Content-Language": "{locale}" }
-      }
-    },
-
-    {
-      "name": "get_product_info",
-      "description": "Получить краткую публичную информацию о продукте.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["id"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "locale": { "type": "string", "default": "en" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/products/{id}/info",
         "pathParams": ["id"],
         "headers": { "Content-Language": "{locale}" }
       }
@@ -148,6 +110,24 @@
         "pathParams": ["productId"]
       }
     },
+
+    {
+      "name": "list_product_addons",
+      "description": "Получить список аддонов продукта по его UUID.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["productId"],
+        "properties": {
+          "productId": { "type": "string", "format": "uuid", "description": "UUID продукта" }
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v2/products/{productId}/addons",
+        "pathParams": ["productId"]
+      }
+    },
+
 
     // ─────────────────────────────────────────
     // МЕДИА ПРОДУКТА
