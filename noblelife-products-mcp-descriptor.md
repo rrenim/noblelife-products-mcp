@@ -377,6 +377,96 @@
       "http": { "method": "GET", "path": "/api/v2/itinerary-point-types" }
     },
 
+    // ─────────────────────────────────────────
+    // КОРЗИНА / ЗАКАЗ
+    // ─────────────────────────────────────────
+
+    {
+      "name": "add_to_cart",
+      "description": "Добавить продукт в корзину. Возвращает cart_id. Вызывать после подтверждения клиентом всех деталей заказа.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["product_id", "product_variant_id", "event_date", "categories"],
+        "properties": {
+          "product_id": { "type": "string", "format": "uuid", "description": "UUID продукта" },
+          "product_variant_id": { "type": "integer", "description": "ID варианта продукта" },
+          "availability_slot_id": { "type": "integer", "description": "ID слота доступности (если применимо)" },
+          "time_slot_id": { "type": "integer", "description": "ID временного слота (если продукт имеет несколько слотов)" },
+          "event_date": { "type": "string", "format": "date", "description": "Дата мероприятия, YYYY-MM-DD" },
+          "is_resident": { "type": "boolean", "default": false, "description": "Признак резидента ОАЭ" },
+          "categories": {
+            "type": "array",
+            "description": "Участники по категориям",
+            "items": {
+              "type": "object",
+              "required": ["type", "quantity"],
+              "properties": {
+                "type": { "type": "string", "enum": ["ADULT", "CHILD", "INFANT", "GROUP"], "description": "Тип участника" },
+                "quantity": { "type": "integer", "minimum": 1 }
+              }
+            }
+          },
+          "addons": {
+            "type": "array",
+            "description": "Дополнительные услуги (опционально)",
+            "items": {
+              "type": "object",
+              "required": ["addon_id", "quantity"],
+              "properties": {
+                "addon_id": { "type": "integer" },
+                "quantity": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      },
+      "http": {
+        "baseUrl": "https://noblelife.ae/api/sales",
+        "method": "POST",
+        "path": "/sales/api/v3/cart/items",
+        "body": "all"
+      }
+    },
+
+    {
+      "name": "checkout",
+      "description": "Оформить заказ по cart_id. Принимает контактные данные клиента и возвращает ссылку на оплату. Вызывать после add_to_cart.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["cart_id", "customer_info"],
+        "properties": {
+          "cart_id": { "type": "string", "format": "uuid", "description": "ID корзины, полученный из add_to_cart" },
+          "customer_info": {
+            "type": "object",
+            "required": ["first_name", "last_name", "email", "phone"],
+            "properties": {
+              "customer_id": { "type": "string", "format": "uuid" },
+              "contact_id": { "type": "integer" },
+              "first_name": { "type": "string" },
+              "last_name": { "type": "string" },
+              "email": { "type": "string", "format": "email" },
+              "phone": { "type": "string" },
+              "country_code": { "type": "string", "description": "Код страны телефона, например '+971'" },
+              "marketing_consent": { "type": "boolean", "default": false },
+              "pickup_location": { "type": "string", "description": "Место подбора клиента (отель, адрес)" }
+            }
+          },
+        }
+      },
+      "http": {
+        "baseUrl": "https://sales-prod.noblelife.ae",
+        "method": "POST",
+        "path": "/sales/api/v3/order/checkout",
+        "body": "all",
+        "bodyConstants": {
+          "provider": "STRIPE",
+          "success_url": "https://noblelife.ae/success?cartId={cart_id}",
+          "cancel_url": "https://noblelife.ae/personal",
+          "failure_url": "https://noblelife.ae/personal"
+        }
+      }
+    },
+
   ],
 
   // ─────────────────────────────────────────
@@ -384,26 +474,57 @@
   // ─────────────────────────────────────────
 
   "workflowHints": {
-    "readProductFull": [
-      "Для полной картины по одному продукту вызвать get_product_editor — возвращает всё в одном ответе:",
-      "product, variants, addons, timeSlots, media, information, priceLists, availabilityRules, translations, publishReadiness.",
-      "Передать locale для получения переводов на нужном языке."
+    "salesFlow": [
+      "Полный сценарий продажи:",
+      "1. Поиск продуктов — list_products_brief.",
+      "2. Детали продукта (описание, варианты, включения) — get_product(id), list_product_information(productId)",
+      "3. После выбора продукта клиентом: get_product(id) — получить variant IDs (в базе знаний их нет).",
+      "4. Параллельно: list_price_lists + list_addon_groups_for_product + list_product_addons — живые цены и аддоны.",
+      "5. При упоминании даты: get_availability(productId, from, to) — окно ±1 день; 7 дней если дата гибкая.",
+      "6. Предложить аддоны если list_addon_groups_for_product вернул группы. Применять правило подгрупп.",
+      "7. Итоговое резюме → явное подтверждение клиента → add_to_cart.",
+      "8. add_to_cart вызывать ТОЛЬКО после явного подтверждения клиента.",
+      "9. Собрать контактные данные: имя, фамилию, email, телефон, pickup_location → вызвать checkout(cart_id, customer_info)."
     ],
-    "readProductCatalog": [
-      "1. list_products — получить список продуктов с пагинацией",
-      "2. get_product или get_product_info — детали конкретного продукта",
-      "3. list_price_lists — цены по productId (фильтр по variantId / addonId)",
-      "4. get_availability — доступные даты и слоты в диапазоне дат"
+    "getProductDetails": [
+      "get_product(id) — возвращает: product, variants (с IDs), addons, timeSlots, media, priceLists.",
+      "Variant IDs доступны только через этот вызов — в базе знаний их нет.",
+      "Передать locale для получения данных на нужном языке."
     ],
-    "readTranslations": [
-      "- get_translations — переводы одной сущности (entityType + entityId + locale)",
-      "- get_translations_batch — переводы нескольких сущностей одного типа за один запрос",
-      "- entityType: product | variant | inclusion | addon | information",
-      "- Поля: product→name,description,rich_text; variant/addon/inclusion→name,description; information→name,description,rich_text"
+    "pricingAndAddons": [
+      "list_price_lists(productId) — все прайс-листы продукта.",
+      "  addonId=null → цены вариантов; addonId≠null → цены конкретного аддона.",
+      "list_addon_groups_for_product(productId) — группы аддонов.",
+      "list_product_addons(productId) — полный список аддонов.",
+      "Если группа имеет подгруппы — сначала выбрать подгруппу, затем показывать только её аддоны."
+    ],
+    "availability": [
+      "get_availability(productId, from, to, productVariantId?) — публичный календарь доступности (B2C).",
+      "Окно запроса: ±1 день от названной даты; 7 дней если клиент гибок.",
+      "list_availability_slots — НЕ использовать в sales flow (admin-only)."
+    ],
+    "addToCart": [
+      "add_to_cart — POST /sales/api/v3/cart/items на https://noblelife.ae/api/sales.",
+      "Обязательные поля: product_id, product_variant_id, event_date, categories[].",
+      "categories: массив {type: ADULT|CHILD|INFANT|GROUP, quantity}.",
+      "addons: массив {addon_id, quantity} — опционально.",
+      "time_slot_id — только если у продукта несколько временных слотов.",
+      "Возвращает cart_id. Передать cart_id в checkout."
+    ],
+    "checkout": [
+      "checkout — POST /sales/api/v3/order/checkout на https://sales-prod.noblelife.ae.",
+      "Обязательные поля: cart_id (из add_to_cart), customer_info.first_name, last_name, email, phone.",
+      "Перед вызовом собрать у клиента: имя, фамилию, email, телефон, pickup_location (если применимо).",
+      "Возвращает ссылку на оплату."
+    ],
+    "translations": [
+      "list_translations(entityType, entityId, locale) — переводы одной сущности.",
+      "list_translations_batch(entityType, entityIds[], locale) — переводы нескольких сущностей за один запрос.",
+      "entityType: product | variant | inclusion | addon | information."
     ],
     "referenceData": [
-      "Справочники загружаются однократно и кэшируются:",
-      "list_countries → list_cities (с фильтром countryId) → list_tags → list_addon_groups → list_addon_sub_groups"
+      "Справочники загружаются однократно:",
+      "list_countries → list_cities(countryId?) → list_tags → list_addon_groups → list_addon_sub_groups"
     ]
   }
 }

@@ -78,7 +78,7 @@ mcp = FastMCP(
     port=int(os.getenv("PORT", "8000")),
 )
 
-APP_VERSION = os.getenv("APP_VERSION", "2026-05-29T17:05:26Z")
+APP_VERSION = os.getenv("APP_VERSION", "2026-05-29T18:58:45Z")
 
 
 @mcp.custom_route("/version", methods=["GET"])
@@ -110,13 +110,15 @@ def _build_request(tool: dict, args: dict):
             raise ValueError(f"Missing path parameter: {param}")
         path = path.replace("{" + param + "}", urllib.parse.quote(str(args[param]), safe=""))
 
+    base = http_cfg.get("baseUrl", BASE_URL).rstrip("/")
+
     query_params = http_cfg.get("queryParams", [])
     query = urllib.parse.urlencode(
         [(name, args[name]) for name in query_params if name in args and args[name] is not None],
         doseq=True,
     )
 
-    url = BASE_URL + path
+    url = base + path
     if query:
         url = f"{url}?{query}"
 
@@ -132,7 +134,9 @@ def _build_request(tool: dict, args: dict):
 
     data = None
     if http_cfg.get("body") == "all":
-        data = json.dumps(args).encode("utf-8")
+        constants = {k: _resolve_header_value(v, args) for k, v in http_cfg.get("bodyConstants", {}).items()}
+        body = {**args, **constants}
+        data = json.dumps(body).encode("utf-8")
         headers.setdefault("Content-Type", "application/json")
 
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
