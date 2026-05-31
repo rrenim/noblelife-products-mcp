@@ -21,36 +21,63 @@
     // ПРОДУКТЫ
     // ─────────────────────────────────────────
 
+    // {
+    //   "name": "list_products",
+    //   "description": "Получить постраничный список всех туристических продуктов. Можно фильтровать по агентскому каналу (B2B/B2C).",
+    //   "inputSchema": {
+    //     "type": "object",
+    //     "properties": {
+    //       "agent": {
+    //         "type": "string",
+    //         "enum": ["B2B", "B2C"],
+    //         "description": "Фильтр по каналу продаж"
+    //       },
+    //       "locale": {
+    //         "type": "string",
+    //         "default": "en",
+    //         "description": "Язык ответа (Content-Language), например 'en', 'ru', 'ar'"
+    //       },
+    //       "page": { "type": "integer", "default": 0, "minimum": 0 },
+    //       "size": { "type": "integer", "default": 100, "minimum": 1 },
+    //       "sort": {
+    //         "type": "array",
+    //         "items": { "type": "string" },
+    //         "description": "Поля сортировки, например ['name,asc']"
+    //       }
+    //     }
+    //   },
+    //   "http": {
+    //     "method": "GET",
+    //     "path": "/api/v2/products",
+    //     "queryParams": ["agent", "page", "size", "sort"],
+    //     "headers": { "Content-Language": "{locale}" }
+    //   }
+    // },
+
     {
-      "name": "list_products",
-      "description": "Получить постраничный список всех туристических продуктов. Можно фильтровать по агентскому каналу (B2B/B2C).",
+      "name": "list_products_brief",
+      "description": "Получить постраничный список продуктов для сайта (B2C). Поддерживает фильтрацию по городу и тегу, сортировку и выбор валюты.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "agent": {
-            "type": "string",
-            "enum": ["B2B", "B2C"],
-            "description": "Фильтр по каналу продаж"
-          },
-          "locale": {
-            "type": "string",
-            "default": "en",
-            "description": "Язык ответа (Content-Language), например 'en', 'ru', 'ar'"
-          },
           "page": { "type": "integer", "default": 0, "minimum": 0 },
           "size": { "type": "integer", "default": 100, "minimum": 1 },
           "sort": {
             "type": "array",
             "items": { "type": "string" },
             "description": "Поля сортировки, например ['name,asc']"
-          }
+          },
+          "cityId": { "type": "integer", "description": "Фильтр по ID города" },
+          "tagId": { "type": "string", "format": "uuid", "description": "Фильтр по UUID тега" },
+          "displayCurrency": { "type": "string", "default": "AED", "description": "Валюта отображения цен" },
+          "locale": { "type": "string", "default": "en", "description": "Язык ответа (Accept-Language)" }
         }
       },
       "http": {
         "method": "GET",
-        "path": "/api/v2/products",
-        "queryParams": ["agent", "page", "size", "sort"],
-        "headers": { "Content-Language": "{locale}" }
+        "path": "/api/v2/website/products",
+        "queryParams": ["page", "size", "sort", "cityId", "tagId", "displayCurrency"],
+        "headers": { "Accept-Language": "{locale}" }
       }
     },
 
