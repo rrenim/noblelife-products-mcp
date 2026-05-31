@@ -386,29 +386,29 @@
       "description": "Добавить продукт в корзину. Возвращает cart_id. Вызывать после подтверждения клиентом всех деталей заказа.",
       "inputSchema": {
         "type": "object",
-        "required": ["product_id", "product_variant_id", "event_date", "categories"],
+        "required": ["product_id", "product_variant_id", "availability_slot_id", "time_slot_id", "event_date", "categories", "addons"],
         "properties": {
           "product_id": { "type": "string", "format": "uuid", "description": "UUID продукта" },
-          "product_variant_id": { "type": "integer", "description": "ID варианта продукта" },
-          "availability_slot_id": { "type": "integer", "description": "ID слота доступности (если применимо)" },
-          "time_slot_id": { "type": "integer", "description": "ID временного слота (если продукт имеет несколько слотов)" },
+          "product_variant_id": { "type": "integer", "description": "ID варианта продукта (из get_product)" },
+          "availability_slot_id": { "type": "integer", "description": "ID слота доступности (из get_availability)" },
+          "time_slot_id": { "type": "integer", "description": "ID временного слота (из get_product)" },
           "event_date": { "type": "string", "format": "date", "description": "Дата мероприятия, YYYY-MM-DD" },
           "is_resident": { "type": "boolean", "default": false, "description": "Признак резидента ОАЭ" },
           "categories": {
             "type": "array",
-            "description": "Участники по категориям",
+            "description": "Участники по категориям. Пример: [{\"type\": \"ADULT\", \"quantity\": 2}]",
             "items": {
               "type": "object",
               "required": ["type", "quantity"],
               "properties": {
-                "type": { "type": "string", "enum": ["ADULT", "CHILD", "INFANT", "GROUP"], "description": "Тип участника" },
+                "type": { "type": "string", "enum": ["ADULT", "CHILD", "INFANT", "GROUP"] },
                 "quantity": { "type": "integer", "minimum": 1 }
               }
             }
           },
           "addons": {
             "type": "array",
-            "description": "Дополнительные услуги (опционально)",
+            "description": "Аддоны. Передавать пустой массив [] если аддонов нет.",
             "items": {
               "type": "object",
               "required": ["addon_id", "quantity"],
@@ -440,13 +440,10 @@
             "type": "object",
             "required": ["first_name", "last_name", "email", "phone"],
             "properties": {
-              "customer_id": { "type": "string", "format": "uuid" },
-              "contact_id": { "type": "integer" },
               "first_name": { "type": "string" },
               "last_name": { "type": "string" },
               "email": { "type": "string", "format": "email" },
-              "phone": { "type": "string" },
-              "country_code": { "type": "string", "description": "Код страны телефона, например '+971'" },
+              "phone": { "type": "string", "description": "Телефон с кодом страны, например '+971123456789'" },
               "marketing_consent": { "type": "boolean", "default": false },
               "pickup_location": { "type": "string", "description": "Место подбора клиента (отель, адрес)" }
             }
