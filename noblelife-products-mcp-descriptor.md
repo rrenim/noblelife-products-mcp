@@ -396,7 +396,8 @@
           "is_resident": { "type": "boolean", "default": false, "description": "Признак резидента ОАЭ" },
           "categories": {
             "type": "array",
-            "description": "Участники по категориям. Пример: [{\"type\": \"ADULT\", \"quantity\": 2}]",
+            "minItems": 1,
+            "description": "Участники по категориям. Обязательно хотя бы одна категория. Пример: [{\"type\": \"ADULT\", \"quantity\": 2}]",
             "items": {
               "type": "object",
               "required": ["type", "quantity"],
