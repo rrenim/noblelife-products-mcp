@@ -503,17 +503,19 @@
     ],
     "addToCart": [
       "add_to_cart — POST /sales/api/v3/cart/items на https://noblelife.ae/api/sales.",
-      "Обязательные поля: product_id, product_variant_id, event_date, categories[].",
-      "categories: массив {type: ADULT|CHILD|INFANT|GROUP, quantity}.",
-      "addons: массив {addon_id, quantity} — опционально.",
-      "time_slot_id — только если у продукта несколько временных слотов.",
-      "Возвращает cart_id. Передать cart_id в checkout."
+      "Обязательные поля: product_id, product_variant_id, availability_slot_id, time_slot_id, event_date, categories[], addons[].",
+      "categories: массив {type: ADULT|CHILD|INFANT|GROUP, quantity}. Минимум одна категория, никогда не передавать пустой массив.",
+      "addons: массив {addon_id, quantity}. Передавать [] если аддонов нет.",
+      "Возвращает cart_id. Передать cart_id в checkout.",
+      "Пример успешного запроса: {\"product_id\": \"7c0f3154-a5f4-4fbb-9b1f-4a337edbe7bb\", \"product_variant_id\": 71, \"availability_slot_id\": 50509, \"time_slot_id\": 42, \"event_date\": \"2026-07-30\", \"is_resident\": false, \"categories\": [{\"type\": \"ADULT\", \"quantity\": 2}, {\"type\": \"CHILD\", \"quantity\": 1}], \"addons\": [{\"addon_id\": 45, \"quantity\": 1}, {\"addon_id\": 41, \"quantity\": 1}]}"
     ],
     "checkout": [
       "checkout — POST /sales/api/v3/order/checkout на https://sales-prod.noblelife.ae.",
       "Обязательные поля: cart_id (из add_to_cart), customer_info.first_name, last_name, email, phone.",
       "Перед вызовом собрать у клиента: имя, фамилию, email, телефон, pickup_location (если применимо).",
-      "Возвращает ссылку на оплату."
+      "provider, success_url, cancel_url, failure_url — подставляются автоматически, не запрашивать у клиента.",
+      "Возвращает checkoutUrl — ссылка на оплату для отправки клиенту.",
+      "Пример успешного запроса: {\"cart_id\": \"92b063f2-b596-4747-acb3-c03c146c96d2\", \"customer_info\": {\"first_name\": \"MyFirstName\", \"last_name\": \"MyLastName\", \"email\": \"user@gmail.com\", \"phone\": \"+971123456789\", \"marketing_consent\": true, \"pickup_location\": \"MyLocation\"}}"
     ],
     "translations": [
       "list_translations(entityType, entityId, locale) — переводы одной сущности.",
