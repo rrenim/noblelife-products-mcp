@@ -402,7 +402,7 @@
               "type": "object",
               "required": ["type", "quantity"],
               "properties": {
-                "type": { "type": "string", "enum": ["ADULT", "CHILD", "INFANT", "GROUP"] },
+                "type": { "type": "string", "enum": ["ADULT", "CHILD", "INFANT", "GROUP"], "description": "Поле называется 'type', не 'categoryType'. Обязательно." },
                 "quantity": { "type": "integer", "minimum": 1 }
               }
             }
