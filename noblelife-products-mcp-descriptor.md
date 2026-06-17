@@ -78,12 +78,15 @@
         "path": "/api/v2/website/products",
         "queryParams": ["page", "size", "sort", "cityId", "tagId", "displayCurrency"],
         "headers": { "Accept-Language": "{locale}" }
+      },
+      "responseFields": {
+        "content": ["id", "name", "cityName", "foodIncluded", "hasGuide", "transportation", "freeCancellationHours", "duration", "displayPrice"]
       }
     },
 
     {
       "name": "get_product",
-      "description": "Получить полные данные и информацию по продукту по его UUID.",
+      "description": "Получить основные данные продукта по его UUID: название, варианты с включениями, параметры участников, отмена.",
       "inputSchema": {
         "type": "object",
         "required": ["id"],
@@ -97,6 +100,11 @@
         "path": "/api/v2/products/{id}",
         "pathParams": ["id"],
         "headers": { "Content-Language": "{locale}" }
+      },
+      "responseFields": {
+        "":                    ["id", "name", "cityName", "foodIncluded", "hasGuide", "transportation", "minParticipants", "maxParticipants", "freeCancellationHours", "duration", "variants"],
+        "variants":            ["id", "name", "description", "isDefault", "inclusions"],
+        "variants.inclusions": ["name"]
       }
     },
 
@@ -152,6 +160,9 @@
         "method": "GET",
         "path": "/api/v2/products/{productId}/addons",
         "pathParams": ["productId"]
+      },
+      "responseFields": {
+        "": ["id", "addonGroup", "addonSubGroup", "name", "description", "pricingEffect", "variantLinks"]
       }
     },
 
@@ -219,6 +230,11 @@
         "method": "GET",
         "path": "/api/v2/price-lists",
         "queryParams": ["productId", "variantId", "addonId", "isActive"]
+      },
+      "responseFields": {
+        "":           ["variantId", "addonId", "conditions", "entries"],
+        "conditions": ["conditionType", "conditionValue"],
+        "entries":    ["categoryType", "currencyCode", "rateType", "sellPrice", "wasPrice"]
       }
     },
 
@@ -243,6 +259,10 @@
         "method": "GET",
         "path": "/api/v2/availability",
         "queryParams": ["productId", "from", "to", "productVariantId"]
+      },
+      "responseFields": {
+        "":            ["dates"],
+        "dates.slots": ["slotId", "timeSlotId", "productVariantId", "startTime", "available"]
       }
     },
 

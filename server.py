@@ -78,7 +78,7 @@ mcp = FastMCP(
     port=int(os.getenv("PORT", "8000")),
 )
 
-APP_VERSION = os.getenv("APP_VERSION", "2026-06-02T12:00:00Z")
+APP_VERSION = os.getenv("APP_VERSION", "2026-06-17T12:00:00Z")
 
 
 @mcp.custom_route("/version", methods=["GET"])
@@ -143,13 +143,36 @@ def _build_request(tool: dict, args: dict):
     return request
 
 
+def _project_at_path(data: object, path_parts: list, fields: list) -> object:
+    """Recursively navigate path_parts into data, then filter to fields.
+    Lists at any level are traversed automatically without being named in the path."""
+    if isinstance(data, list):
+        return [_project_at_path(item, path_parts, fields) for item in data]
+    if not isinstance(data, dict):
+        return data
+    if not path_parts:
+        field_set = set(fields)
+        return {k: v for k, v in data.items() if k in field_set}
+    key, rest = path_parts[0], path_parts[1:]
+    if key not in data:
+        return data
+    result = dict(data)
+    result[key] = _project_at_path(data[key], rest, fields)
+    return result
+
+
 def _execute_tool(tool: dict, args: dict):
     request = _build_request(tool, args)
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             raw = response.read().decode("utf-8")
             try:
-                return json.loads(raw)
+                data = json.loads(raw)
+                response_fields = tool.get("responseFields")
+                if isinstance(response_fields, dict):
+                    for path, fields in response_fields.items():
+                        data = _project_at_path(data, path.split(".") if path else [], fields)
+                return data
             except json.JSONDecodeError:
                 return {"text": raw}
     except urllib.error.HTTPError as exc:
