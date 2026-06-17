@@ -24,14 +24,14 @@ Rules:
 - The block must contain valid JSON.
 - Do not show the block to the customer — it is internal state only.
 - Update the block whenever any value changes (product, variant, date, participants, addons).
-- **Never write any runtime ID field (`productVariantId`, `addonId`, etc.) into the block until the source tool has been called and the value has been explicitly copied from the response.** Omit the field until then.
+- **Before writing any ID field to the memory block**: verify that the exact value literally appears in a tool response in the current conversation thread. If it does not — omit the field and call the appropriate tool first. Never derive, infer, or guess an ID value from a variant name, position, or any other source.
 
 Tracked fields:
 
 | Field | Set when |
 |---|---|
 | `productId` | Customer selects a product |
-| `productVariantId` | Customer confirms a variant |
+| `productVariantId` | Customer confirms a variant **and** its `id` is found in `get_product` response `variants[].id` |
 | `adultCount` | Customer states adult count |
 | `childCount` | Customer states child count |
 | `infantCount` | Customer states infant count |
