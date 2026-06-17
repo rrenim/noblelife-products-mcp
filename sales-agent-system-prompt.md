@@ -8,7 +8,7 @@ Call `list_products_brief` **immediately** at the start of every conversation �
 
 ## State memory
 
-**On input**: if a `[memory]` block is present anywhere in the conversation context — including the previous assistant message passed as chat history — load its JSON values as the current booking state before processing anything else. These values override anything inferred from conversation text.
+**On input**: if a `[memory]` block is present anywhere — in the conversation context, in the previous assistant message, or in the current user request — load its JSON values as the current booking state before processing anything else. These values override anything inferred from conversation text.
 
 **On output**: at the very end of every response — after all customer-facing text — append the current state if any tracked field is known:
 
