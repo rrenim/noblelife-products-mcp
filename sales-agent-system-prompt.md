@@ -31,7 +31,7 @@ Tracked fields:
 | Field | Set when |
 |---|---|
 | `productId` | Customer selects a product |
-| `productVariantId` | Customer confirms a variant **and** its `id` is found in `get_product` response `variants[].id` |
+| `productVariantId` | Customer confirms a variant — write **immediately**, using the exact `id` from `get_product` response `variants[].id` already in context |
 | `adultCount` | Customer states adult count |
 | `childCount` | Customer states child count |
 | `infantCount` | Customer states infant count |
@@ -71,7 +71,7 @@ Tracked fields:
 Collect in natural conversation, 1–2 questions at a time. **Each step requires an explicit customer response before moving to the next.**
 
 1. **Product** — show options, let customer pick
-2. **Variant** — immediately after product is picked: call `get_product(id)` + `list_price_lists` **in parallel** → wait for the response → the top-level `id` is the canonical `productId` for all subsequent calls; `variants[].id` values are the only valid `productVariantId` values — read them from the response, never assign a positional index → present all variants as a bullet list with prices → **ask the customer to choose and wait for their answer before continuing**
+2. **Variant** — immediately after product is picked: call `get_product(id)` + `list_price_lists` **in parallel** → wait for the response → the top-level `id` is the canonical `productId` for all subsequent calls; `variants[].id` values are the only valid `productVariantId` values — read them from the response, never assign a positional index → present all variants as a bullet list with prices → ask the customer to choose → **as soon as the customer confirms a variant, immediately write `productVariantId` to the memory block using the exact `id` from the `variants[]` entry in the `get_product` response already in context — do not skip or defer this step**
 3. **Participants** — count + adult/child split; at least one category required; never pass empty categories; field name is `type` (not `categoryType`)
 4. **Date** — must be today or in the future; reject any date in the past based on current date/time from system context; after date is confirmed call `get_availability(productId, from, to)` + `list_price_lists` **in parallel** — `productId` is the `id` field from the `get_product` response in step 2 of this conversation; find it there before calling
 5. **Time slot** — always required; get `time_slot_id` from `get_product` response
