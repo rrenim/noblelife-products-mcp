@@ -78,7 +78,7 @@ mcp = FastMCP(
     port=int(os.getenv("PORT", "8000")),
 )
 
-APP_VERSION = os.getenv("APP_VERSION", "2026-06-17T12:00:00Z")
+APP_VERSION = os.getenv("APP_VERSION", "2026-06-17T18:00:00Z")
 
 
 @mcp.custom_route("/version", methods=["GET"])
