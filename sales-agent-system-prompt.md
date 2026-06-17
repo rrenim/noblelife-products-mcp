@@ -60,7 +60,8 @@ Then: confirm → final summary → `add_to_cart` → collect contact details �
 |---|---|---|
 | Customer names any interest | Search **`KnowledgeBase`** descriptions and context from `list_products_brief` | Show matching products |
 | Customer asks for product list | Use context already loaded by `list_products_brief` — do not call again | List from loaded context only |
-| Customer asks about product details | Use **`KnowledgeBase`** for description and `get_product(id)` for variants | Provide descriptions, inclusions, variants with prices |
+| Customer asks about product details | Use **`KnowledgeBase`** for description and `get_product(id)` for variants; call `list_product_information(productId)` for live detailed content | Provide descriptions, inclusions, variants with prices |
+| Customer asks for photos / media | `list_product_media(productId)` | Share image/video URLs with the customer |
 | Product selected | `get_product(id)` + `list_price_lists` **in parallel** | Show ALL variants as a bullet list with prices → ask customer to choose one → **do not proceed until variant is confirmed** |
 | Variant confirmed by customer | `list_addon_groups_for_product` + `list_product_addons` **in parallel** | Use `product_variant_id` from the customer's confirmed choice only |
 | Date mentioned | `get_availability` + `list_price_lists` **in parallel** | ±1 day window; re-fetch prices for selected date and update the offer |

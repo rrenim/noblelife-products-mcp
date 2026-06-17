@@ -3,7 +3,7 @@
   "server": {
     "name": "noblelife-product-service",
     "version": "2.0.0",
-    "description": "Read-only MCP-сервер для получения информации о туристических продуктах платформы NobleLife. Охватывает продукты, варианты, аддоны, медиа, цены, переводы и справочники.",
+    "description": "Read-only MCP-сервер для получения информации о туристических продуктах платформы NobleLife. Охватывает продукты, варианты, аддоны, медиа, информационные блоки, цены и корзину.",
     "baseUrl": "https://product-new-prod.noblelife.ae",
     "auth": {
       "type": "bearer",
@@ -105,23 +105,6 @@
         "":                    ["id", "name", "cityName", "foodIncluded", "hasGuide", "transportation", "minParticipants", "maxParticipants", "freeCancellationHours", "duration", "variants"],
         "variants":            ["id", "name", "description", "isDefault", "inclusions"],
         "variants.inclusions": ["name"]
-      }
-    },
-
-    {
-      "name": "get_publish_readiness",
-      "description": "Проверить готовность продукта к публикации. Возвращает список blocker-кодов: NO_ACTIVE_VARIANT, VARIANT_NO_ACTIVE_PRICE_LIST, PRICE_LIST_EMPTY.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["id"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid", "description": "UUID продукта" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/products/{id}/publish-readiness",
-        "pathParams": ["id"]
       }
     },
 
@@ -266,137 +249,6 @@
       }
     },
 
-    {
-      "name": "list_availability_slots",
-      "description": "Получить детальный список слотов доступности продукта (admin-view). Фильтрация по диапазону дат или по флагу needsReview.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["productId"],
-        "properties": {
-          "productId": { "type": "string", "format": "uuid" },
-          "from": { "type": "string", "format": "date" },
-          "to": { "type": "string", "format": "date" },
-          "needsReview": { "type": "boolean", "description": "Только слоты, требующие проверки" },
-          "page": { "type": "integer", "default": 0 },
-          "size": { "type": "integer", "default": 100 }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/availability-slots",
-        "queryParams": ["productId", "from", "to", "needsReview", "page", "size"]
-      }
-    },
-
-    // ─────────────────────────────────────────
-    // ПЕРЕВОДЫ
-    // ─────────────────────────────────────────
-
-    {
-      "name": "list_translations",
-      "description": "Получить переводы одной сущности по типу, ID и локали. entityType: product | variant | inclusion | addon | information.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["entityType", "entityId", "locale"],
-        "properties": {
-          "entityType": {
-            "type": "string",
-            "enum": ["product", "variant", "inclusion", "addon", "information"]
-          },
-          "entityId": { "type": "string" },
-          "locale": { "type": "string", "description": "Код языка, например 'ru', 'ar', 'en'" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/translations/{entityType}/{entityId}",
-        "pathParams": ["entityType", "entityId"],
-        "queryParams": ["locale"]
-      }
-    },
-
-    {
-      "name": "list_translations_batch",
-      "description": "Batch-загрузка переводов для нескольких сущностей одного типа за один запрос.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["entityType", "entityIds", "locale"],
-        "properties": {
-          "entityType": {
-            "type": "string",
-            "enum": ["product", "variant", "inclusion", "addon", "information"]
-          },
-          "entityIds": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Массив UUID/ID сущностей"
-          },
-          "locale": { "type": "string" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/translations/{entityType}",
-        "pathParams": ["entityType"],
-        "queryParams": ["entityIds", "locale"]
-      }
-    },
-
-    // ─────────────────────────────────────────
-    // СПРАВОЧНИКИ
-    // ─────────────────────────────────────────
-
-    {
-      "name": "list_countries",
-      "description": "Получить список стран (справочник).",
-      "inputSchema": { "type": "object", "properties": {} },
-      "http": { "method": "GET", "path": "/api/v2/countries" }
-    },
-
-    {
-      "name": "list_cities",
-      "description": "Получить список городов. Можно фильтровать по countryId.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "countryId": { "type": "integer", "description": "ID страны для фильтрации" }
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v2/cities",
-        "queryParams": ["countryId"]
-      }
-    },
-
-    {
-      "name": "list_tags",
-      "description": "Получить список тегов (справочник).",
-      "inputSchema": { "type": "object", "properties": {} },
-      "http": { "method": "GET", "path": "/api/v2/tags" }
-    },
-
-    {
-      "name": "list_addon_groups",
-      "description": "Получить список групп аддонов (справочник).",
-      "inputSchema": { "type": "object", "properties": {} },
-      "http": { "method": "GET", "path": "/api/v2/addon-groups" }
-    },
-
-    {
-      "name": "list_addon_sub_groups",
-      "description": "Получить список подгрупп аддонов (справочник).",
-      "inputSchema": { "type": "object", "properties": {} },
-      "http": { "method": "GET", "path": "/api/v2/addon-sub-groups" }
-    },
-
-    {
-      "name": "list_itinerary_point_types",
-      "description": "Получить список типов точек маршрута (справочник).",
-      "inputSchema": { "type": "object", "properties": {} },
-      "http": { "method": "GET", "path": "/api/v2/itinerary-point-types" }
-    },
-
     // ─────────────────────────────────────────
     // КОРЗИНА / ЗАКАЗ
     // ─────────────────────────────────────────
@@ -537,14 +389,9 @@
       "Возвращает checkoutUrl — ссылка на оплату для отправки клиенту.",
       "Пример успешного запроса: {\"cart_id\": \"92b063f2-b596-4747-acb3-c03c146c96d2\", \"customer_info\": {\"first_name\": \"MyFirstName\", \"last_name\": \"MyLastName\", \"email\": \"user@gmail.com\", \"phone\": \"+971123456789\", \"marketing_consent\": true, \"pickup_location\": \"MyLocation\"}}"
     ],
-    "translations": [
-      "list_translations(entityType, entityId, locale) — переводы одной сущности.",
-      "list_translations_batch(entityType, entityIds[], locale) — переводы нескольких сущностей за один запрос.",
-      "entityType: product | variant | inclusion | addon | information."
-    ],
-    "referenceData": [
-      "Справочники загружаются однократно:",
-      "list_countries → list_cities(countryId?) → list_tags → list_addon_groups → list_addon_sub_groups"
+    "productContent": [
+      "list_product_information(productId) — информационные блоки продукта (описание, маршрут, FAQ).",
+      "list_product_media(productId) — медиафайлы продукта (изображения, видео)."
     ]
   }
 }

@@ -257,20 +257,5 @@ for tool_obj in mcp._tool_manager._tools.values():
     _clean_tool_parameters(tool_obj)
 
 
-@mcp.tool()
-def list_descriptor_tools() -> list[str]:
-    """List all MCP tools derived from the NobleLife descriptor."""
-    return [tool["name"] for tool in SPEC.get("tools", [])]
-
-
-@mcp.tool()
-def describe_descriptor_tool(name: str) -> dict:
-    """Return the descriptor block for one tool by name."""
-    for tool in SPEC.get("tools", []):
-        if tool["name"] == name:
-            return tool
-    return {"error": "tool_not_found", "name": name}
-
-
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
