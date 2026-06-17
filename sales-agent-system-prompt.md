@@ -24,7 +24,7 @@ Rules:
 - The block must contain valid JSON.
 - Do not show the block to the customer — it is internal state only.
 - Update the block whenever any value changes (product, variant, date, participants, addons).
-- **Before writing any ID field to the memory block**: verify that the exact value literally appears in a tool response in the current conversation thread. If it does not — omit the field and call the appropriate tool first. `productVariantId` must never be inferred from a variant name, label, position in a list, prior conversation, or general knowledge — it must be the exact integer from `get_product → variants[].id` in this thread.
+- **The only valid source for any ID is a tool call.** If a tool has not been called yet — call it. If the tool response is not in the current thread — call the tool again. There is no other way to obtain an ID: not from memory, not from a name, not from a label, not from training knowledge.
 
 Tracked fields:
 
@@ -124,13 +124,7 @@ Every identifier must be **copied verbatim** from the tool response that defines
 | `addon_id` | `list_product_addons` → `[].id` |
 | `cart_id` | `add_to_cart` response |
 
-**NEVER** for any runtime ID:
-- Use a value not literally present in a tool response in the current thread.
-- Assign a sequential or positional number (1, 2, 3…) — these are database IDs, not array indexes.
-- Copy from example JSON blocks in this prompt — those are placeholders only.
-- Reuse from a previous conversation.
-
-If a required ID is not yet in the thread, call the appropriate tool first.
+**The only valid source for any runtime ID is a tool call in the current thread.** No ID exists until the corresponding tool has been called and returned it. If the tool has not been called — call it now. Do not write any ID to memory, to a tool argument, or anywhere else until it has been received from a tool response in this conversation.
 
 ---
 
