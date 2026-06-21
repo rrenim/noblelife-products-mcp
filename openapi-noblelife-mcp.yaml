@@ -1,0 +1,519 @@
+openapi: 3.0.3
+
+info:
+  title: NobleLife Product & Sales API (as used by noblelife-products-mcp)
+  description: >
+    OpenAPI описание HTTP-эндпоинтов платформы NobleLife, которые вызывает
+    MCP-сервер `noblelife-products-mcp`. Покрывает каталог продуктов, варианты,
+    аддоны, медиа, информационные блоки, прайс-листы, доступность, корзину и
+    оформление заказа.
+
+    Эндпоинты распределены по трём хостам:
+      * Product service — `https://product-new-prod.noblelife.ae` (8 GET-эндпоинтов)
+      * Cart            — `https://noblelife.ae/api/sales`        (add_to_cart)
+      * Checkout        — `https://sales-prod.noblelife.ae`       (checkout)
+
+    Схемы ответов отражают поля, реально потребляемые MCP (после проекции
+    `responseFields`). Полные ответоы upstream могут содержать больше полей.
+  version: "2026-06-21"
+
+servers:
+  - url: https://product-new-prod.noblelife.ae
+    description: Product service (каталог, цены, доступность)
+
+security:
+  - bearerAuth: []
+  - {}
+
+tags:
+  - name: Products
+    description: Каталог продуктов, варианты, медиа, информация
+  - name: Addons
+    description: Группы и список аддонов продукта
+  - name: Pricing
+    description: Прайс-листы
+  - name: Availability
+    description: Календарь доступности
+  - name: Cart & Checkout
+    description: Корзина и оформление заказа
+
+paths:
+
+  /api/v2/website/products:
+    get:
+      tags: [Products]
+      operationId: listProductsBrief
+      summary: Постраничный список продуктов (B2C)
+      description: >
+        MCP tool `list_products_brief`. Краткий список продуктов для сайта.
+        Поддерживает фильтрацию по городу/тегу, сортировку и валюту отображения.
+      parameters:
+        - { name: page,            in: query, schema: { type: integer, default: 0, minimum: 0 }, description: Номер страницы (с 0) }
+        - { name: size,            in: query, schema: { type: integer, default: 100, minimum: 1 }, description: Размер страницы }
+        - { name: sort,            in: query, schema: { type: array, items: { type: string } }, style: form, explode: true, description: "Поля сортировки, напр. name,asc" }
+        - { name: cityId,          in: query, schema: { type: integer }, description: Фильтр по ID города }
+        - { name: tagId,           in: query, schema: { type: string, format: uuid }, description: Фильтр по UUID тега }
+        - { name: displayCurrency, in: query, schema: { type: string, default: AED }, description: Валюта отображения цен }
+        - { name: Accept-Language, in: header, schema: { type: string, default: en }, description: Язык ответа }
+      responses:
+        "200":
+          description: Страница продуктов
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductBriefPage" }
+
+  /api/v2/products/{id}:
+    get:
+      tags: [Products]
+      operationId: getProduct
+      summary: Данные продукта по UUID
+      description: >
+        MCP tool `get_product`. Поле `id` в ответе — это `productId`,
+        используемый во всех последующих вызовах. `variants[].id` —
+        единственный валидный источник `product_variant_id`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: UUID продукта }
+        - { name: Content-Language, in: header, schema: { type: string, default: en }, description: Язык ответа }
+      responses:
+        "200":
+          description: Продукт с вариантами и включениями
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /api/v2/products/{productId}/addons/groups:
+    get:
+      tags: [Addons]
+      operationId: listAddonGroupsForProduct
+      summary: Группы аддонов продукта
+      description: MCP tool `list_addon_groups_for_product`.
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Список групп аддонов
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AddonGroup" }
+
+  /api/v2/products/{productId}/addons:
+    get:
+      tags: [Addons]
+      operationId: listProductAddons
+      summary: Список аддонов продукта
+      description: >
+        MCP tool `list_product_addons`. `[].id` — единственный валидный источник
+        `addon_id`. `variantLinks` определяет, для каких вариантов доступен аддон.
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Список аддонов
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Addon" }
+
+  /api/v2/products/{productId}/media:
+    get:
+      tags: [Products]
+      operationId: listProductMedia
+      summary: Медиафайлы продукта
+      description: MCP tool `list_product_media`. Изображения, видео, документы продукта.
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Список медиафайлов (passthrough — MCP не проецирует поля)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /api/v2/products/{productId}/information:
+    get:
+      tags: [Products]
+      operationId: listProductInformation
+      summary: Информационные блоки продукта
+      description: MCP tool `list_product_information`. Описательные секции (описание, маршрут, FAQ).
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Информационные блоки (passthrough — MCP не проецирует поля)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /api/v2/price-lists:
+    get:
+      tags: [Pricing]
+      operationId: listPriceLists
+      summary: Прайс-листы продукта
+      description: >
+        MCP tool `list_price_lists`. Записи с `addonId=null` — базовые цены
+        вариантов; `addonId≠null` — цены аддонов. У каждой записи есть
+        `conditions` (`WEEKDAY` — стандартная цена; `DATE_RANGE` — сезонная).
+      parameters:
+        - { name: productId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: variantId, in: query, schema: { type: integer }, description: Фильтр по варианту }
+        - { name: addonId,   in: query, schema: { type: integer }, description: Фильтр по аддону }
+        - { name: isActive,  in: query, schema: { type: boolean, default: true } }
+      responses:
+        "200":
+          description: Прайс-листы
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PriceList" }
+
+  /api/v2/availability:
+    get:
+      tags: [Availability]
+      operationId: getAvailability
+      summary: Публичный календарь доступности (B2C)
+      description: >
+        MCP tool `get_availability`. Возвращает доступные даты и слоты.
+        Каждый слот специфичен для варианта (`productVariantId`). `slotId` →
+        `availability_slot_id`, `timeSlotId` → `time_slot_id` для add_to_cart.
+      parameters:
+        - { name: productId,        in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: from,             in: query, required: true, schema: { type: string, format: date }, description: "Начало диапазона YYYY-MM-DD" }
+        - { name: to,               in: query, required: true, schema: { type: string, format: date }, description: "Конец диапазона YYYY-MM-DD" }
+        - { name: productVariantId, in: query, schema: { type: integer }, description: "Вернуть слоты только этого варианта" }
+      responses:
+        "200":
+          description: Календарь доступности
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Availability" }
+
+  /sales/api/v3/cart/items:
+    servers:
+      - url: https://noblelife.ae/api/sales
+        description: Cart service
+    post:
+      tags: [Cart & Checkout]
+      operationId: addToCart
+      summary: Добавить продукт в корзину
+      description: >
+        MCP tool `add_to_cart`. Возвращает `cart_id`. Тип категории в
+        `categories[].type` должен совпадать с `entries[].categoryType` из
+        прайс-листа варианта (PER_PERSON → ADULT/CHILD; PER_GROUP → GROUP).
+        Несовпадение слота и варианта → 400 «No slot found for this selection».
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddToCartRequest" }
+      responses:
+        "200":
+          description: Корзина создана
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CartResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /sales/api/v3/order/checkout:
+    servers:
+      - url: https://sales-prod.noblelife.ae
+        description: Checkout service
+    post:
+      tags: [Cart & Checkout]
+      operationId: checkout
+      summary: Оформить заказ и получить ссылку на оплату
+      description: >
+        MCP tool `checkout`. Поля `provider`, `success_url`, `cancel_url`,
+        `failure_url` подставляются автоматически. Возвращает `checkoutUrl`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckoutRequest" }
+      responses:
+        "200":
+          description: Заказ оформлен, ссылка на оплату
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer-токен. Передаётся MCP-сервером, если задан (опционально).
+
+  responses:
+    Error:
+      description: Ошибка запроса
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+
+    DisplayPrice:
+      type: object
+      nullable: true
+      properties:
+        minPrice:     { type: number, example: 350.0 }
+        maxPrice:     { type: number, example: 1450.0 }
+        currencyCode: { type: string, example: AED }
+        rateType:     { type: string, example: per person, description: "напр. per person, per group" }
+
+    ProductBrief:
+      type: object
+      properties:
+        id:                    { type: string, format: uuid }
+        name:                  { type: string }
+        cityName:              { type: string, nullable: true }
+        foodIncluded:          { type: boolean }
+        hasGuide:              { type: boolean }
+        transportation:        { type: boolean }
+        freeCancellationHours: { type: integer, nullable: true }
+        duration:              { type: integer, description: "минуты" }
+        displayPrice:          { $ref: "#/components/schemas/DisplayPrice" }
+
+    ProductBriefPage:
+      type: object
+      description: Spring-style постраничная обёртка
+      properties:
+        content:
+          type: array
+          items: { $ref: "#/components/schemas/ProductBrief" }
+        totalElements:   { type: integer, example: 18 }
+        totalPages:      { type: integer, example: 1 }
+        number:          { type: integer, example: 0 }
+        size:            { type: integer, example: 100 }
+        numberOfElements: { type: integer, example: 18 }
+        first:           { type: boolean }
+        last:            { type: boolean }
+        empty:           { type: boolean }
+        pageable:        { type: object, additionalProperties: true }
+        sort:            { type: object, additionalProperties: true }
+
+    Inclusion:
+      type: object
+      properties:
+        name: { type: string }
+
+    Variant:
+      type: object
+      properties:
+        id:          { type: integer, description: "источник product_variant_id", example: 71 }
+        name:        { type: string, example: Premium }
+        description: { type: string, nullable: true }
+        isDefault:   { type: boolean }
+        inclusions:
+          type: array
+          items: { $ref: "#/components/schemas/Inclusion" }
+
+    Product:
+      type: object
+      properties:
+        id:                    { type: string, format: uuid }
+        name:                  { type: string }
+        cityName:              { type: string, nullable: true }
+        foodIncluded:          { type: boolean }
+        hasGuide:              { type: boolean }
+        transportation:        { type: boolean }
+        minParticipants:       { type: integer }
+        maxParticipants:       { type: integer }
+        freeCancellationHours: { type: integer }
+        duration:              { type: integer, description: "минуты" }
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/Variant" }
+
+    AddonGroup:
+      type: object
+      properties:
+        addonGroup: { type: string, example: quads-buggies }
+        itemCount:  { type: integer, example: 9 }
+
+    VariantLink:
+      type: object
+      properties:
+        variantId: { type: integer }
+        isFree:    { type: boolean }
+
+    Addon:
+      type: object
+      properties:
+        id:            { type: integer, description: "источник addon_id", example: 37 }
+        addonGroup:    { type: string, example: quads-buggies }
+        addonSubGroup: { type: string, nullable: true, example: "Standard buggy" }
+        name:          { type: string, example: "2 Seater Quad Bike" }
+        description:   { type: string, nullable: true }
+        pricingEffect:
+          type: string
+          enum: [NONE, REPLACES_PRODUCT_PAX_PRICE]
+        variantLinks:
+          type: array
+          items: { $ref: "#/components/schemas/VariantLink" }
+
+    Condition:
+      type: object
+      properties:
+        conditionType:
+          type: string
+          enum: [WEEKDAY, DATE_RANGE]
+        conditionValue:
+          type: object
+          description: >
+            Для WEEKDAY: { days: [1..7] }. Для DATE_RANGE: { from, to } (YYYY-MM-DD).
+          additionalProperties: true
+
+    PriceEntry:
+      type: object
+      properties:
+        categoryType:
+          type: string
+          enum: [ADULT, CHILD, INFANT, GROUP, ADDON]
+        currencyCode: { type: string, example: AED }
+        rateType:     { type: string, example: PER_PERSON, description: "PER_PERSON | PER_GROUP | per person" }
+        sellPrice:    { type: number, example: 475.0 }
+        wasPrice:     { type: number, nullable: true, example: 360.0 }
+
+    PriceList:
+      type: object
+      properties:
+        variantId: { type: integer, nullable: true, description: "null для строк аддонов без привязки к варианту" }
+        addonId:   { type: integer, nullable: true, description: "null → цена варианта; иначе цена аддона" }
+        conditions:
+          type: array
+          items: { $ref: "#/components/schemas/Condition" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/PriceEntry" }
+
+    Slot:
+      type: object
+      properties:
+        slotId:           { type: integer, description: "источник availability_slot_id", example: 51079 }
+        timeSlotId:       { type: integer, description: "источник time_slot_id", example: 42 }
+        productVariantId: { type: integer, description: "вариант, к которому относится слот", example: 71 }
+        startTime:        { type: string, example: "14:00:00" }
+        available:        { type: integer, example: 1500 }
+
+    AvailabilityDate:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        slots:
+          type: array
+          items: { $ref: "#/components/schemas/Slot" }
+
+    Availability:
+      type: object
+      properties:
+        dates:
+          type: array
+          description: "Пустой массив, если доступности в диапазоне нет"
+          items: { $ref: "#/components/schemas/AvailabilityDate" }
+
+    CartCategory:
+      type: object
+      required: [type, quantity]
+      properties:
+        type:
+          type: string
+          enum: [ADULT, CHILD, INFANT, GROUP]
+          description: "Должен совпадать с categoryType прайс-листа варианта"
+        quantity: { type: integer, minimum: 1 }
+
+    CartAddon:
+      type: object
+      required: [addon_id, quantity]
+      properties:
+        addon_id: { type: integer }
+        quantity: { type: integer, minimum: 1 }
+
+    AddToCartRequest:
+      type: object
+      required: [product_id, product_variant_id, availability_slot_id, time_slot_id, event_date, categories, addons]
+      properties:
+        product_id:           { type: string, format: uuid }
+        product_variant_id:   { type: integer, description: "из get_product variants[].id" }
+        availability_slot_id: { type: integer, description: "из get_availability slots[].slotId (совпадение по дате и варианту)" }
+        time_slot_id:         { type: integer, description: "из get_availability slots[].timeSlotId того же слота" }
+        event_date:           { type: string, format: date }
+        is_resident:          { type: boolean, default: false }
+        categories:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CartCategory" }
+        addons:
+          type: array
+          description: "[] если аддонов нет"
+          items: { $ref: "#/components/schemas/CartAddon" }
+      example:
+        product_id: "7c0f3154-a5f4-4fbb-9b1f-4a337edbe7bb"
+        product_variant_id: 71
+        availability_slot_id: 51079
+        time_slot_id: 42
+        event_date: "2026-12-10"
+        is_resident: false
+        categories:
+          - { type: ADULT, quantity: 2 }
+        addons:
+          - { addon_id: 37, quantity: 1 }
+
+    CartResponse:
+      type: object
+      properties:
+        cart_id: { type: string, format: uuid }
+
+    CustomerInfo:
+      type: object
+      required: [first_name, last_name, email, phone]
+      properties:
+        first_name:        { type: string }
+        last_name:         { type: string }
+        email:             { type: string, format: email }
+        phone:             { type: string, example: "+971123456789", description: "с кодом страны" }
+        marketing_consent: { type: boolean, default: false }
+        pickup_location:   { type: string, description: "отель/адрес" }
+
+    CheckoutRequest:
+      type: object
+      required: [cart_id, customer_info]
+      properties:
+        cart_id:       { type: string, format: uuid }
+        customer_info: { $ref: "#/components/schemas/CustomerInfo" }
+        provider:      { type: string, default: STRIPE, readOnly: true, description: "подставляется автоматически" }
+        success_url:   { type: string, readOnly: true, description: "подставляется автоматически" }
+        cancel_url:    { type: string, readOnly: true, description: "подставляется автоматически" }
+        failure_url:   { type: string, readOnly: true, description: "подставляется автоматически" }
+      example:
+        cart_id: "43999965-a21b-4076-8c28-e376cece4319"
+        customer_info:
+          first_name: MyFirstName
+          last_name: MyLastName
+          email: user@gmail.com
+          phone: "+971123456789"
+          marketing_consent: true
+          pickup_location: MyLocation
+
+    CheckoutResponse:
+      type: object
+      properties:
+        checkoutUrl: { type: string, format: uri, description: "ссылка на оплату для клиента" }
+
+    Error:
+      type: object
+      properties:
+        error:   { type: integer, example: 400, description: "HTTP-код (так оборачивает MCP)" }
+        message: { type: string, example: "Product ...: No slot found for this selection" }
