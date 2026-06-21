@@ -86,7 +86,7 @@
 
     {
       "name": "get_product",
-      "description": "Получить основные данные продукта по его UUID: название, варианты с включениями, параметры участников, отмена.",
+      "description": "Получить основные данные продукта по его UUID: название, варианты с включениями, параметры участников, отмена. Поле id в ответе — это productId, который необходимо использовать во всех последующих вызовах: get_availability, list_product_addons, list_addon_groups_for_product, list_product_media, list_product_information, add_to_cart.",
       "inputSchema": {
         "type": "object",
         "required": ["id"],
